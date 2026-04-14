@@ -2,7 +2,7 @@
 
 You read articles, watch videos, collect bookmarks, save PDFs. Months later, you can't find any of it. The knowledge you consumed didn't compound. It scattered.
 
-This is an LLM-maintained knowledge base for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). You drop source material into a folder. The AI processes it into structured wiki summaries, synthesizes concept articles across sources, and maintains a searchable index. You ask questions in natural language. The best answers file back into the wiki as permanent knowledge. Every cycle makes the system smarter.
+This is an AI-maintained knowledge base for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). You drop source material into a folder. The AI processes it into structured summaries, synthesizes articles that connect ideas across sources, and maintains a searchable index. You ask questions in plain English. The best answers get saved back into the wiki as permanent knowledge. Every cycle makes the system smarter.
 
 Based on [Andrej Karpathy's method](https://x.com/karpathy/status/2039805659525644595) for LLM knowledge bases ([gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)), extended with flat-file architecture, a navigational index, temporal awareness, and a 5-protocol workflow system.
 
@@ -20,43 +20,69 @@ graph LR
 
 ## Getting Started
 
-You need [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [Obsidian](https://obsidian.md) (free, for browsing your wiki with graph view, backlinks, and search).
+**Requirements:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (the AI that runs your wiki) and [Obsidian](https://obsidian.md) (free app to browse your wiki with graph view, backlinks, and search).
 
-### Option A: Natural language setup (recommended)
+### Option A: Let Claude set it up for you (recommended)
 
-1. Download the [`wiki.md`](command/wiki.md) command file
-2. Place it at `.claude/commands/wiki.md` in your project
-3. Open Claude Code and say:
+1. Download [`wiki.md`](command/wiki.md) from this repo
+2. Save it to `.claude/commands/wiki.md` inside your project folder (create the folders if they don't exist)
+3. Open Claude Code in your project and say:
 
 ```
-/wiki let's set up my knowledge base from the claude-fast-wiki repo
+/wiki set up my knowledge base
 ```
 
-Claude will:
+Claude handles the rest. It will pull the necessary files from this repo, create your vault folders, and tell you when it's ready.
 
-- Clone this repo and copy the skill files into your project's `.claude/skills/wiki/`
-- Create the `Vault/` folder structure with an initialized `INDEX.json`
-- Report ready for your first source drop
-
-### Option B: Manual setup
+### Option B: Set it up yourself
 
 ```bash
-# Clone this repo
+# 1. Clone this repo somewhere on your machine
 git clone https://github.com/Abdo-El-Mobayad/claude-fast-wiki.git
 
-# Copy the skill into your project's .claude folder
-cp -r claude-fast-wiki/skill/ your-project/.claude/skills/wiki/
+# 2. Go to your project folder and copy three things:
+#    The command (how you talk to the wiki)
+mkdir -p your-project/.claude/commands
+cp claude-fast-wiki/command/wiki.md your-project/.claude/commands/wiki.md
 
-# Copy the /wiki command
-cp -r claude-fast-wiki/command/wiki.md your-project/.claude/commands/wiki.md
+#    The skill (how the AI knows what to do)
+cp -r claude-fast-wiki/skill your-project/.claude/skills/wiki
 
-# Copy the vault template
-cp -r claude-fast-wiki/vault-template/ your-project/Vault/
+#    The vault (where your knowledge lives)
+cp -r claude-fast-wiki/vault-template your-project/Vault
 ```
 
 After either option, everything is `/wiki` from here on.
 
-### Drop sources and go
+### What goes where
+
+This system has three pieces. Here's where each one lands in your project:
+
+```
+your-project/
+├── .claude/
+│   ├── commands/
+│   │   └── wiki.md           <-- The command. Type /wiki to talk to your KB.
+│   └── skills/
+│       └── wiki/             <-- The skill. AI reads these files to know
+│           ├── SKILL.md          how to run your wiki. You never touch these.
+│           ├── protocols/
+│           ├── templates/
+│           └── references/
+└── Vault/                    <-- Your knowledge base. This is where your
+    ├── raw/                      content lives. Open this folder in Obsidian.
+    ├── wiki/
+    ├── output/
+    └── INDEX.json
+```
+
+**The command** (`wiki.md`) is what you interact with. Type `/wiki` followed by what you need.
+
+**The skill** (the `wiki/` folder inside `.claude/skills/`) is the AI's instruction manual. It contains the protocols, templates, and references that tell Claude how to process your sources, build articles, answer questions, and maintain the wiki. You never need to read or edit these files.
+
+**The vault** (`Vault/`) is your actual knowledge base. This is the only part you interact with directly (by dropping files into `raw/` and browsing the wiki in Obsidian).
+
+### Start using it
 
 Drop `.md`, `.html`, `.txt`, or `.pdf` files into `Vault/raw/`, then:
 
@@ -64,21 +90,34 @@ Drop `.md`, `.html`, `.txt`, or `.pdf` files into `Vault/raw/`, then:
 /wiki process the new stuff
 ```
 
-That's it. The AI reads each source, creates structured summaries, extracts key concepts, updates the index, and cleans up the raw files. Your knowledge base is live.
+The AI reads each source, creates structured summaries, extracts key concepts, updates the index, and cleans up the raw files. Your knowledge base is live.
+
+### Git and version control
+
+Add this to your `.gitignore` if you don't want to track raw source files (they get deleted after processing anyway):
+
+```
+Vault/raw/*
+!Vault/raw/.gitkeep
+```
+
+The `Vault/wiki/` and `Vault/INDEX.json` are worth tracking in git. They are your compiled knowledge and benefit from version history.
 
 ## The Five Protocols
 
 The system routes your natural language to five specialized protocols. You never need to remember which one to call. Just talk.
 
-| Protocol      | What It Does                                                                                       | You Say                                                     |
-| ------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| **Ingest**    | Processes raw sources into structured wiki summaries with frontmatter, key concepts, and citations | "Process the new stuff" / "I dropped some articles in raw/" |
-| **Compile**   | Synthesizes concept articles from summaries, builds cross-links, identifies gaps                   | "Organize the wiki" / "What connections are we missing?"    |
-| **Query**     | Researches your wiki and produces structured answers at 3 depth tiers                              | "What do we know about X?" / "Deep dive on Y"               |
-| **Lint**      | Audits wiki health: orphans, broken links, stale content, thin articles, evolution suggestions     | "How healthy is the wiki?" / "Find gaps and fix them"       |
-| **File Back** | Promotes valuable query outputs into permanent wiki articles                                       | "Save that answer" / "Keep that"                            |
+| Protocol      | What It Does                                                                                   | You Say                                                     |
+| ------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Ingest**    | Processes raw sources into structured wiki summaries with key concepts and citations           | "Process the new stuff" / "I dropped some articles in raw/" |
+| **Compile**   | Synthesizes concept articles from summaries, builds cross-links, identifies gaps               | "Organize the wiki" / "What connections are we missing?"    |
+| **Query**     | Researches your wiki and produces structured answers at 3 depth tiers                          | "What do we know about X?" / "Deep dive on Y"               |
+| **Lint**      | Audits wiki health: orphans, broken links, stale content, thin articles, evolution suggestions | "How healthy is the wiki?" / "Find gaps and fix them"       |
+| **File Back** | Promotes valuable query outputs into permanent wiki articles                                   | "Save that answer" / "Keep that"                            |
 
 ### Query Depth (Auto-Detected)
+
+You don't pick a depth. The AI figures it out from how you phrase the question.
 
 | Tier         | Signals                                                 | What Happens                                                           |
 | ------------ | ------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -129,37 +168,21 @@ graph TD
     style IDX fill:#1e3a5f,stroke:#4ecdc4,color:#fff,stroke-width:2px
 ```
 
-### Key Design Decisions
+### How It Works Under the Hood
 
-**Flat wiki, no subfolders.** All files live directly in `wiki/`. Topics, article types, and connections are tracked in INDEX.json metadata, not folder paths. This optimizes for LLM navigation: one index read tells the AI where everything is.
+**Flat wiki, no subfolders.** All files live directly in `wiki/`. Topics and connections are tracked in INDEX.json, not folder paths. This makes it easy for the AI to find everything with a single index read.
 
-**INDEX.json is the brain.** A single JSON file that maps every topic, article, summary, connection, and gap. It's a compiled cache that can be regenerated from file frontmatter at any time. At small scale, the AI reads it in full. At large scale (100+ articles), it queries specific slices via `jq` or Python.
+**INDEX.json is the brain.** A single JSON file that maps every topic, article, summary, connection, and gap. Think of it as a table of contents that the AI maintains automatically.
 
-**Summaries vs. concept articles.** Ingest creates summaries (one per source, preserving the original's claims and data). Compile creates concept articles (synthesizing across multiple sources). This separation means compile can see patterns across ALL sources before deciding what deserves its own article.
+**Summaries vs. concept articles.** When you drop in a source, the AI creates a summary (one per source, preserving the original's claims and data). When you ask it to organize, it creates concept articles that synthesize ideas across multiple summaries. This separation means it can see patterns across ALL your sources before deciding what deserves its own article.
 
-**Raw is a processing queue.** Source files are deleted from `raw/` after successful ingest. The wiki summary becomes the permanent record. The original URL is preserved in `source_url` frontmatter for provenance.
+**Raw is a processing queue.** Source files are deleted from `raw/` after processing. The wiki summary becomes the permanent record. The original URL is saved in the summary's metadata for reference.
 
-**Three dates per file.** `date_published` (original source), `date_ingested` (when processed), `date_updated` (last modified). Never rely on filesystem timestamps. Git and sync tools break them.
+**Three dates per file.** Each wiki file tracks when the original source was published, when it was processed, and when it was last updated. This lets the AI know when information is getting stale.
 
-**Relevance decay.** Each topic can set `relevance_decay_days` (default 180, fast-moving fields like AI: 90). During queries, the AI prefers recent sources and flags stale content. Your wiki tells you when it's getting old.
+**Relevance decay.** Each topic can have a freshness threshold (default: 180 days, AI topics: 90 days). When you ask questions, the AI prefers recent sources and warns you when content is getting old.
 
-**Wikilinks everywhere.** All internal references use `[[wikilinks]]` for Obsidian compatibility. This enables graph view, backlinks panel, and automatic link updates when files are moved.
-
-## Vault Structure
-
-```
-Vault/
-├── raw/                    # Drop sources here. Cleared after ingest.
-│   └── assets/             # Images referenced by sources (permanent)
-├── wiki/                   # All wiki content. Flat, no subfolders.
-│   ├── [source-summaries]  # One per ingested source
-│   ├── [concept-articles]  # Synthesized from multiple summaries
-│   ├── [conn-* articles]   # Cross-topic connection articles
-│   └── [master-* dirs]     # Consolidated directories for thin sources
-├── output/                 # Query results staged here
-│   └── archived/           # Processed outputs
-└── INDEX.json              # The navigational brain
-```
+**Wikilinks everywhere.** All internal references use `[[wikilinks]]` so Obsidian can show you the graph view, backlinks, and auto-update links when files move.
 
 ## Using /wiki
 
@@ -198,7 +221,7 @@ The wiki is designed to work beautifully in [Obsidian](https://obsidian.md):
 - **Search** finds content across all wiki files instantly
 - **Canvas** renders knowledge maps generated by the query protocol
 - **Marp Slides** plugin renders presentation decks
-- **CLI** (Obsidian 1.12+) enables 54x faster orphan detection and 6x faster search from Claude Code
+- **CLI** (Obsidian 1.12+) enables faster search and structural analysis from Claude Code
 
 Open your `Vault/` folder as an Obsidian vault. Everything just works.
 
@@ -215,13 +238,13 @@ This prevents hundreds of one-paragraph files from cluttering the wiki.
 
 ### HTML and PDF Companions
 
-Non-markdown files get a companion `.md` file with frontmatter and extracted insights. The original file is kept unchanged. The companion makes non-markdown content queryable and linkable through the same index.
+Non-markdown files get a companion `.md` file with metadata and extracted insights. The original file is kept unchanged. The companion makes non-markdown content searchable through the same index.
 
 ### Connection Articles
 
-When concepts bridge two or more topics, the compile protocol creates connection articles prefixed with `conn-`. These appear in INDEX.json's `connections` array and link to relevant articles in both topics.
+When concepts bridge two or more topics, the compile protocol creates connection articles prefixed with `conn-`. These link to relevant articles in both topics and appear in INDEX.json's `connections` array.
 
-### Scaling INDEX.json
+### Scaling
 
 At small scale (under 50 articles), INDEX.json is read in full. As the wiki grows:
 
@@ -231,7 +254,7 @@ At small scale (under 50 articles), INDEX.json is read in full. As the wiki grow
 | Medium (50-200)       | 10-50K tokens   | Query specific topics via jq/Python            |
 | Large (200+)          | 50K+ tokens     | Never read in full. Use targeted queries only. |
 
-The skill includes a full jq query reference for navigating large indexes efficiently.
+The skill includes a full query reference for navigating large indexes efficiently.
 
 ## What's Different From Karpathy's Original
 
@@ -241,7 +264,7 @@ Andrej Karpathy described the core loop: raw sources go in, LLM compiles a wiki,
 2. **Five distinct protocols** (ingest, compile, query, lint, file-back) with clear separation of concerns
 3. **Temporal awareness** with per-topic relevance decay and staleness detection
 4. **Three-tier query depth** that auto-detects from your question's complexity
-5. **Structured frontmatter** with three dates per file for precise temporal tracking
+5. **Structured metadata** with three dates per file for precise temporal tracking
 6. **Master directories** for thin sources to prevent wiki bloat
 7. **Connection articles** for explicit cross-topic synthesis
 8. **Lint protocol** with auto-fix for self-healing wiki maintenance
@@ -254,29 +277,29 @@ Andrej Karpathy described the core loop: raw sources go in, LLM compiles a wiki,
 claude-fast-wiki/
 ├── README.md                           # You're here
 ├── LICENSE                             # MIT
-├── skill/                              # Copy to .claude/skills/wiki/
-│   ├── SKILL.md                        # Main skill definition + intent routing
-│   ├── protocols/
-│   │   ├── ingest.md                   # Raw sources -> wiki summaries
-│   │   ├── compile.md                  # Summaries -> concept articles
-│   │   ├── query.md                    # 3-tier question answering
-│   │   ├── lint.md                     # Health audit + auto-fix
-│   │   └── file-back.md               # Output -> permanent wiki
-│   ├── templates/
-│   │   ├── source-summary.md           # Frontmatter schema for summaries
-│   │   ├── wiki-article.md             # Frontmatter schema for articles
-│   │   ├── index-format.md             # INDEX.json schema + jq queries
-│   │   └── marp-deck.md               # Marp slide deck reference
-│   └── references/
-│       ├── obsidian-cli-ref.md         # Obsidian CLI commands
-│       └── canvas-spec.md             # JSON Canvas format spec
+├── skill/                              # The AI's instruction manual
+│   ├── SKILL.md                        #   Main definition + intent routing
+│   ├── protocols/                      #   How to run each workflow
+│   │   ├── ingest.md                   #     Raw sources -> wiki summaries
+│   │   ├── compile.md                  #     Summaries -> concept articles
+│   │   ├── query.md                    #     3-tier question answering
+│   │   ├── lint.md                     #     Health audit + auto-fix
+│   │   └── file-back.md               #     Output -> permanent wiki
+│   ├── templates/                      #   Schemas for wiki files
+│   │   ├── source-summary.md           #     Summary format
+│   │   ├── wiki-article.md             #     Concept article format
+│   │   ├── index-format.md             #     INDEX.json schema + queries
+│   │   └── marp-deck.md               #     Slide deck format
+│   └── references/                     #   Tool references
+│       ├── obsidian-cli-ref.md         #     Obsidian CLI commands
+│       └── canvas-spec.md             #     JSON Canvas format
 ├── command/
-│   └── wiki.md                         # Copy to .claude/commands/wiki.md
-└── vault-template/                     # Copy to Vault/ in your project
-    ├── INDEX.json                      # Empty initialized index
-    ├── raw/                            # Source drop zone
-    ├── wiki/                           # AI-maintained wiki
-    └── output/archived/                # Query output staging
+│   └── wiki.md                         # The /wiki command you interact with
+└── vault-template/                     # Starter vault (copied to your project)
+    ├── INDEX.json                      #   Empty initialized index
+    ├── raw/                            #   Source drop zone
+    ├── wiki/                           #   AI-maintained wiki
+    └── output/archived/                #   Query output staging
 ```
 
 ## Credits

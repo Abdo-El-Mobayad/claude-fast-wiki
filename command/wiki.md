@@ -5,32 +5,120 @@ argument-hint: [natural language - just say what you need]
 
 # /wiki - Knowledge Base
 
-Your AI-maintained knowledge base powered by Claude Code and Obsidian. Talk naturally. The system detects what you need and routes to the right workflow.
+You are the AI behind the user's knowledge base. This command file tells you how to handle every `/wiki` request. The user talks naturally. You detect intent and execute the right workflow.
 
-## How It Works
+---
 
-You drop source material (articles, PDFs, notes, bookmarks) into `Vault/raw/`. The AI processes them into structured wiki summaries, builds concept articles that synthesize across sources, and maintains a queryable index. You ask questions in natural language. The best answers file back into the wiki. Knowledge compounds over time.
+## System Overview
 
-## Activation
+The knowledge base has three parts the user already has in their project:
 
-1. Read the SKILL.md at the skill location for full system context, file registry, intent detection, and conventions.
-2. Detect what the user wants from their natural language (see Intent Detection in SKILL.md).
-3. Load the relevant protocol and template files based on detected intent.
-4. Execute the protocol.
+| Part             | Location                   | What It Is                                                                                                                                                |
+| ---------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **This command** | `.claude/commands/wiki.md` | How the user talks to you (they type `/wiki ...`)                                                                                                         |
+| **The skill**    | `.claude/skills/wiki/`     | Your instruction manual. Protocols, templates, and references that tell you how to do everything.                                                         |
+| **The vault**    | `Vault/`                   | The actual knowledge base. `raw/` for unprocessed sources, `wiki/` for the compiled wiki, `output/` for query results, `INDEX.json` for the master index. |
 
-## Quick Reference
+---
 
-The vault lives at `Vault/` relative to your project root. Structure:
+## How to Handle Every Request
+
+### Step 1: Read your skill file
+
+Always start by reading `.claude/skills/wiki/SKILL.md`. It contains the full file registry, intent detection rules, and conventions. Never skip this step.
+
+### Step 2: Detect what the user wants
+
+Match their natural language to one of these intents:
+
+| User Says                                                       | Intent        | Load These Files                                                                     |
+| --------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------ |
+| "Process the new stuff", "I dropped articles in raw/"           | **Ingest**    | `protocols/ingest.md` + `templates/source-summary.md` + `templates/index-format.md`  |
+| "Organize the wiki", "What connections are we missing?"         | **Compile**   | `protocols/compile.md` + `templates/wiki-article.md` + `templates/index-format.md`   |
+| "What do we know about X?", "Compare X and Y", "Deep dive on X" | **Query**     | `protocols/query.md`                                                                 |
+| "How healthy is the wiki?", "Find gaps and fix them"            | **Lint**      | `protocols/lint.md` + `references/obsidian-cli-ref.md`                               |
+| "Save that answer", "Keep that", "Add to the KB"                | **File Back** | `protocols/file-back.md` + `templates/wiki-article.md` + `templates/index-format.md` |
+| "Set up my knowledge base", "Initialize the wiki"               | **Init**      | See First Time Setup below                                                           |
+| _(no argument)_                                                 | **Status**    | See Status Check below                                                               |
+
+All file paths above are relative to `.claude/skills/wiki/`.
+
+### Step 3: Load the protocol files and execute
+
+Read the files listed for the detected intent, then follow the protocol's instructions.
+
+---
+
+## First Time Setup
+
+When the user says "set up my knowledge base", "let's set up my wiki", "initialize", or any similar setup phrase:
+
+### If the skill files are missing (`.claude/skills/wiki/SKILL.md` does not exist):
+
+1. Clone `https://github.com/Abdo-El-Mobayad/claude-fast-wiki.git` to a temporary location
+2. Copy the `skill/` folder from the cloned repo to `.claude/skills/wiki/` in the current project
+3. Delete the cloned repo (it's no longer needed)
+
+### If the vault is missing (`Vault/INDEX.json` does not exist):
+
+1. Create the directory structure:
+   - `Vault/raw/`
+   - `Vault/wiki/`
+   - `Vault/output/archived/`
+2. Create `Vault/INDEX.json` with this empty schema:
+   ```json
+   {
+     "meta": {
+       "last_compiled": null,
+       "total_topics": 0,
+       "total_articles": 0,
+       "total_sources": 0,
+       "total_connections": 0
+     },
+     "topics": {},
+     "connections": [],
+     "needs_attention": [],
+     "recent_activity": []
+   }
+   ```
+
+### After setup is complete:
+
+Report to the user: "Your knowledge base is ready. Drop source files (articles, PDFs, notes) into `Vault/raw/` and say `/wiki process the new stuff` to get started."
+
+### If everything already exists:
+
+Tell the user the wiki is already set up and show the status (see below).
+
+---
+
+## Status Check
+
+When the user types `/wiki` with no argument:
+
+1. Check if `Vault/INDEX.json` exists
+2. If yes: read the meta section and show a brief status:
+   - Number of topics, articles, and sources
+   - Recent activity
+   - Any items in `needs_attention`
+3. If no: offer to set up the knowledge base (run First Time Setup)
+
+---
+
+## Vault Structure
 
 ```
 Vault/
-├── raw/          # Drop sources here. Processing queue (cleared after ingest).
+├── raw/          # User drops sources here. Cleared after ingest.
 ├── wiki/         # AI-maintained wiki. Flat folder, no subfolders.
-├── INDEX.json    # The brain. Single queryable index of all topics + articles.
-└── output/       # Staging area for query results before filing back.
+├── INDEX.json    # Master index of all topics, articles, and connections.
+└── output/       # Query results staged here before filing back.
+    └── archived/ # Processed outputs.
 ```
 
-## What You Can Say
+---
+
+## What the User Can Say (Examples)
 
 ### Adding Knowledge
 
@@ -40,8 +128,6 @@ Vault/
 /wiki add this URL to the knowledge base
 ```
 
-The AI reads each source, creates a structured summary in wiki/, updates INDEX.json, and deletes the processed raw file. The summary preserves key claims, data points, quotes, and connections.
-
 ### Organizing
 
 ```
@@ -49,8 +135,6 @@ The AI reads each source, creates a structured summary in wiki/, updates INDEX.j
 /wiki there are connections we're missing
 /wiki rebuild the indexes
 ```
-
-The AI scans all summaries for recurring concepts, creates synthesis articles that connect ideas across sources, builds cross-topic connections, and identifies gaps.
 
 ### Asking Questions
 
@@ -62,22 +146,13 @@ The AI scans all summaries for recurring concepts, creates synthesis articles th
 /wiki show me a knowledge map
 ```
 
-Three depth tiers are auto-detected:
-
-- **Quick:** Index-level overview, answered inline
-- **Standard:** Reads relevant articles, writes output to Vault/output/
-- **Deep:** Multi-agent research across the full wiki, fills gaps with web search
-
 ### Health Checks
 
 ```
 /wiki how healthy is the wiki?
 /wiki find gaps and fix them
 /wiki what's missing?
-/wiki clean up
 ```
-
-Audits structural integrity (orphans, broken links), content quality (thin articles, stale sources), temporal health (topics needing refresh), and suggests evolution paths.
 
 ### Saving Answers
 
@@ -87,34 +162,13 @@ Audits structural integrity (orphans, broken links), content quality (thin artic
 /wiki keep that
 ```
 
-Valuable query outputs become permanent wiki articles with proper frontmatter, cross-links, and index entries.
-
-## If No Argument Given
-
-If you just type `/wiki` with no argument:
-
-1. Check if `Vault/INDEX.json` exists
-2. If yes: show status (topics, articles, sources, recent activity, any issues needing attention)
-3. If no: offer to initialize the vault structure
-
-## First Time Setup
-
-When the user says "set up my knowledge base", "let's set up my wiki", or similar init phrases:
-
-1. Check if `.claude/skills/wiki/SKILL.md` exists in the current project
-2. If not: clone `https://github.com/Abdo-El-Mobayad/claude-fast-wiki.git` to a temp location, copy `skill/` to `.claude/skills/wiki/`, then clean up
-3. Create the vault structure: `Vault/raw/`, `Vault/wiki/`, `Vault/output/archived/`
-4. Initialize `Vault/INDEX.json` with the empty schema (see `templates/index-format.md`)
-5. Confirm the `/wiki` command is at `.claude/commands/wiki.md` (it should be, since the user is running it)
-6. Report ready: "Your knowledge base is set up. Drop source files into `Vault/raw/` and say `/wiki process the new stuff`."
-
-If the skill files already exist, skip the clone and just ensure the vault structure is in place.
+---
 
 ## The Compounding Loop
 
 ```
-Drop sources -> Ingest -> Compile -> Query -> File back -> Repeat
-     raw/         wiki/     wiki/     output/    wiki/
+Drop sources --> Ingest --> Compile --> Query --> File back --> Repeat
+     raw/         wiki/      wiki/      output/     wiki/
 ```
 
 Each cycle makes the wiki smarter. Summaries feed concept articles. Concept articles improve query answers. Good answers file back as permanent knowledge. The knowledge base grows in quality, not just volume.

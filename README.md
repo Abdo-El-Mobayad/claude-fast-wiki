@@ -4,7 +4,7 @@ You read articles, watch videos, collect bookmarks, save PDFs. Months later, you
 
 This is an LLM-maintained knowledge base for [Claude Code](https://docs.anthropic.com/en/docs/claude-code). You drop source material into a folder. The AI processes it into structured wiki summaries, synthesizes concept articles across sources, and maintains a searchable index. You ask questions in natural language. The best answers file back into the wiki as permanent knowledge. Every cycle makes the system smarter.
 
-Based on [Andrej Karpathy's method](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) for LLM knowledge bases, extended with flat-file architecture, a navigational index, temporal awareness, and a 5-protocol workflow system.
+Based on [Andrej Karpathy's method](https://x.com/karpathy/status/2039805659525644595) for LLM knowledge bases ([gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)), extended with flat-file architecture, a navigational index, temporal awareness, and a 5-protocol workflow system.
 
 ```mermaid
 graph LR
@@ -271,7 +271,7 @@ claude-fast-wiki/
 
 ## Credits
 
-Inspired by [Andrej Karpathy's LLM knowledge base gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Built for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) as part of the [ClaudeFast](https://claudefa.st) ecosystem.
+Inspired by [Andrej Karpathy's LLM knowledge base tweet](https://x.com/karpathy/status/2039805659525644595) and [gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f). Built for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) as part of the [ClaudeFast](https://claudefa.st) ecosystem.
 
 ## License
 

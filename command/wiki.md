@@ -99,12 +99,16 @@ If you just type `/wiki` with no argument:
 
 ## First Time Setup
 
-If the vault doesn't exist yet:
+When the user says "set up my knowledge base", "let's set up my wiki", or similar init phrases:
 
-1. Copy the `vault-template/` contents to `Vault/` in your project root
-2. Or just say `/wiki set up the knowledge base` and the AI creates the structure for you
-3. Start dropping source files into `Vault/raw/`
-4. Say `/wiki process the new stuff`
+1. Check if `.claude/skills/wiki/SKILL.md` exists in the current project
+2. If not: clone `https://github.com/Abdo-El-Mobayad/claude-fast-wiki.git` to a temp location, copy `skill/` to `.claude/skills/wiki/`, then clean up
+3. Create the vault structure: `Vault/raw/`, `Vault/wiki/`, `Vault/output/archived/`
+4. Initialize `Vault/INDEX.json` with the empty schema (see `templates/index-format.md`)
+5. Confirm the `/wiki` command is at `.claude/commands/wiki.md` (it should be, since the user is running it)
+6. Report ready: "Your knowledge base is set up. Drop source files into `Vault/raw/` and say `/wiki process the new stuff`."
+
+If the skill files already exist, skip the clone and just ensure the vault structure is in place.
 
 ## The Compounding Loop
 

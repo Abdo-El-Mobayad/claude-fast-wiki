@@ -22,10 +22,26 @@ graph LR
 
 You need [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [Obsidian](https://obsidian.md) (free, for browsing your wiki with graph view, backlinks, and search).
 
-### 1. Copy the skill and command into your project
+### Option A: Natural language setup (recommended)
+
+1. Download the [`wiki.md`](command/wiki.md) command file
+2. Place it at `.claude/commands/wiki.md` in your project
+3. Open Claude Code and say:
+
+```
+/wiki let's set up my knowledge base from the claude-fast-wiki repo
+```
+
+Claude will:
+
+- Clone this repo and copy the skill files into your project's `.claude/skills/wiki/`
+- Create the `Vault/` folder structure with an initialized `INDEX.json`
+- Report ready for your first source drop
+
+### Option B: Manual setup
 
 ```bash
-# Clone this repo (or download it)
+# Clone this repo
 git clone https://github.com/Abdo-El-Mobayad/claude-fast-wiki.git
 
 # Copy the skill into your project's .claude folder
@@ -38,15 +54,9 @@ cp -r claude-fast-wiki/command/wiki.md your-project/.claude/commands/wiki.md
 cp -r claude-fast-wiki/vault-template/ your-project/Vault/
 ```
 
-### 2. Open Claude Code and start
+After either option, everything is `/wiki` from here on.
 
-```
-/wiki set up the knowledge base
-```
-
-If you already copied the vault template, it'll detect the structure and report ready. If not, it creates the folders and empty INDEX.json for you.
-
-### 3. Drop sources and go
+### Drop sources and go
 
 Drop `.md`, `.html`, `.txt`, or `.pdf` files into `Vault/raw/`, then:
 

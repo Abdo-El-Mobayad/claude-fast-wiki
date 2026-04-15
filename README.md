@@ -14,7 +14,7 @@ Based on [Andrej Karpathy's method](https://x.com/karpathy/status/20398056595256
 
 ### Option A: Let Claude set it up for you (recommended)
 
-1. Download [`wiki.md`](command/wiki.md) from this repo
+1. Download [`wiki.md`](.claude/commands/wiki.md) from this repo
 2. Save it to `.claude/commands/wiki.md` inside your project folder (create the folders if they don't exist)
 3. Open Claude Code in your project and say:
 
@@ -30,13 +30,9 @@ Claude handles the rest. It will pull the necessary files from this repo, create
 # 1. Clone this repo somewhere on your machine
 git clone https://github.com/Abdo-El-Mobayad/claude-fast-wiki.git
 
-# 2. Go to your project folder and copy three things:
-#    The command (how you talk to the wiki)
-mkdir -p your-project/.claude/commands
-cp claude-fast-wiki/command/wiki.md your-project/.claude/commands/wiki.md
-
-#    The skill (how the AI knows what to do)
-cp -r claude-fast-wiki/skill your-project/.claude/skills/wiki
+# 2. Go to your project folder and copy two things:
+#    The .claude folder (command + skill)
+cp -r claude-fast-wiki/.claude your-project/.claude
 
 #    The vault (where your knowledge lives)
 cp -r claude-fast-wiki/vault-template your-project/Vault
@@ -50,17 +46,17 @@ This system has three pieces. Here's where each one lands in your project:
 
 ```
 your-project/
-├── .claude/
+├── .claude/                          <-- Copied directly from this repo
 │   ├── commands/
-│   │   └── wiki.md           <-- The command. Type /wiki to talk to your KB.
+│   │   └── wiki.md                   <-- The command. Type /wiki to talk to your KB.
 │   └── skills/
-│       └── wiki/             <-- The skill. AI reads these files to know
-│           ├── SKILL.md          how to run your wiki. You never touch these.
+│       └── wiki/                     <-- The skill. AI reads these files to know
+│           ├── SKILL.md                  how to run your wiki. You never touch these.
 │           ├── protocols/
 │           ├── templates/
 │           └── references/
-└── Vault/                    <-- Your knowledge base. This is where your
-    ├── raw/                      content lives. Open this folder in Obsidian.
+└── Vault/                            <-- Your knowledge base. This is where your
+    ├── raw/                              content lives. Open this folder in Obsidian.
     ├── wiki/
     ├── output/
     └── INDEX.json
@@ -253,25 +249,28 @@ Andrej Karpathy described the core loop: raw sources go in, LLM compiles a wiki,
 claude-fast-wiki/
 ├── README.md                           # You're here
 ├── LICENSE                             # MIT
-├── skill/                              # The AI's instruction manual
-│   ├── SKILL.md                        #   Main definition + intent routing
-│   ├── protocols/                      #   How to run each workflow
-│   │   ├── ingest.md                   #     Raw sources -> wiki summaries
-│   │   ├── compile.md                  #     Summaries -> concept articles
-│   │   ├── query.md                    #     3-tier question answering
-│   │   ├── lint.md                     #     Health audit + auto-fix
-│   │   └── file-back.md               #     Output -> permanent wiki
-│   ├── templates/                      #   Schemas for wiki files
-│   │   ├── source-summary.md           #     Summary format
-│   │   ├── wiki-article.md             #     Concept article format
-│   │   ├── index-format.md             #     INDEX.json schema + queries
-│   │   └── marp-deck.md               #     Slide deck format
-│   └── references/                     #   Tool references
-│       ├── obsidian-cli-ref.md         #     Obsidian CLI commands
-│       └── canvas-spec.md             #     JSON Canvas format
-├── command/
-│   └── wiki.md                         # The /wiki command you interact with
-└── vault-template/                     # Starter vault (copied to your project)
+├── .claude/                            # Copy this entire folder to your project
+│   ├── commands/
+│   │   └── wiki.md                     #   The /wiki command you interact with
+│   └── skills/
+│       └── wiki/                       #   The AI's instruction manual
+│           ├── SKILL.md                #     Main definition + intent routing
+│           ├── protocols/              #     How to run each workflow
+│           │   ├── ingest.md           #       Raw sources -> wiki summaries
+│           │   ├── compile.md          #       Summaries -> concept articles
+│           │   ├── query.md            #       3-tier question answering
+│           │   ├── lint.md             #       Health audit + auto-fix
+│           │   └── file-back.md        #       Output -> permanent wiki
+│           ├── templates/              #     Schemas for wiki files
+│           │   ├── source-summary.md   #       Summary format
+│           │   ├── wiki-article.md     #       Concept article format
+│           │   ├── index-format.md     #       INDEX.json schema + queries
+│           │   └── marp-deck.md        #       Slide deck format
+│           └── references/             #     Tool references
+│               ├── obsidian-cli-ref.md #       Obsidian CLI commands
+│               └── canvas-spec.md      #       JSON Canvas format
+├── diagrams/                           # Architecture diagram
+└── vault-template/                     # Copy to Vault/ in your project
     ├── INDEX.json                      #   Empty initialized index
     ├── raw/                            #   Source drop zone
     ├── wiki/                           #   AI-maintained wiki

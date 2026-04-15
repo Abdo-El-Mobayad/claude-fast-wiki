@@ -56,7 +56,7 @@ When the user says "set up my knowledge base", "let's set up my wiki", "initiali
 ### If the skill files are missing (`.claude/skills/wiki/SKILL.md` does not exist):
 
 1. Clone `https://github.com/Abdo-El-Mobayad/claude-fast-wiki.git` to a temporary location
-2. Copy the `skill/` folder from the cloned repo to `.claude/skills/wiki/` in the current project
+2. Copy the `.claude/` folder from the cloned repo into the current project (merges with existing `.claude/` if present)
 3. Delete the cloned repo (it's no longer needed)
 
 ### If the vault is missing (`Vault/INDEX.json` does not exist):

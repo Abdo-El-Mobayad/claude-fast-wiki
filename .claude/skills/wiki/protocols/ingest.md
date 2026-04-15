@@ -35,7 +35,25 @@ For each unprocessed file:
 - Identify the author if present
 - Determine which topic(s) this source belongs to. Check existing topics in INDEX.json first. Create a new topic only if no existing topic fits.
 
-### 3. Create Summary
+### 3. Assess Source Type: Full Preserve vs Summary
+
+Before creating the wiki file, assess whether the source is **substantive** or **thin**:
+
+**Substantive sources** (preserve in full): Research reports, detailed guides, prompt collections, tutorials with real depth, articles with thoughtful analysis, reference material someone would revisit. These get YAML frontmatter prepended to the **original content as-is** and move from raw/ to wiki/. No summarization. The original body IS the wiki article.
+
+**Thin/shallow sources** (summarize): Short announcements, simple tweets, tool links, brief opinions without depth. These get the summary treatment using `templates/source-summary.md`, or go into master directory files if they're just URLs.
+
+**The criterion:** If the source was written with thoughtfulness or contains detailed reference material someone would want to revisit in full, preserve it in full. Detail lost in summarization destroys the actual value.
+
+#### For substantive sources (full preserve):
+
+Create the wiki file at `Vault/wiki/[slugified-source-name].md` by prepending YAML frontmatter to the original content:
+
+- Add complete frontmatter with all three dates, `source_url`, topics, status, and `key_concepts`
+- Keep the entire original body unchanged below the frontmatter
+- For multi-topic sources, list all relevant topics in frontmatter
+
+#### For thin sources (summary):
 
 Create a summary file at `Vault/wiki/[slugified-source-name].md` (flat in wiki/, no subfolders).
 

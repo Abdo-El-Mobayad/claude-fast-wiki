@@ -6,17 +6,7 @@ This is an AI-maintained knowledge base for [Claude Code](https://docs.anthropic
 
 Based on [Andrej Karpathy's method](https://x.com/karpathy/status/2039805659525644595) for LLM knowledge bases ([gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)), extended with flat-file architecture, a navigational index, temporal awareness, and a 5-protocol workflow system.
 
-```mermaid
-graph LR
-    A["<b>raw/</b><br/>Drop sources here<br/><i>articles, PDFs, notes</i>"] -->|"<b>Ingest</b><br/>Summarize + extract<br/>key concepts"| B["<b>wiki/</b><br/>Structured summaries<br/><i>+ concept articles</i>"]
-    B -->|"<b>Compile</b><br/>Synthesize across<br/>sources"| B
-    B -->|"<b>Query</b><br/>Ask questions<br/>in natural language"| C["<b>output/</b><br/>Structured answers<br/><i>+ presentations</i>"]
-    C -->|"<b>File Back</b><br/>Best answers become<br/>permanent knowledge"| B
-
-    style A fill:#2d2d2d,stroke:#f5a623,color:#fff,stroke-width:2px
-    style B fill:#2d2d2d,stroke:#4ecdc4,color:#fff,stroke-width:2px
-    style C fill:#2d2d2d,stroke:#a78bfa,color:#fff,stroke-width:2px
-```
+<p align="center"><a href="diagrams/vault-architecture.png"><img src="diagrams/vault-architecture.png" width="90%" alt="Vault architecture: raw sources flow through ingest into a flat wiki, INDEX.json navigates everything, query outputs file back as permanent knowledge" /></a></p>
 
 ## Getting Started
 
@@ -125,54 +115,51 @@ You don't pick a depth. The AI figures it out from how you phrase the question.
 | **Standard** | "Tell me about X", "Compare X and Y"                    | Reads relevant articles. Writes output to `Vault/output/`.             |
 | **Deep**     | "Deep dive", "Comprehensive analysis", "Write a report" | Multi-agent research across the full wiki. Fills gaps with web search. |
 
-## Architecture
+## Why INDEX.json
 
-```mermaid
-graph TD
-    subgraph VAULT ["Vault/"]
-        subgraph RAW ["raw/ &mdash; Processing Queue"]
-            R1["article.md"]
-            R2["research.pdf"]
-            R3["notes.txt"]
-        end
+The index is the most important design decision in this system. It's JSON, not markdown, and that's deliberate.
 
-        IDX[("<b>INDEX.json</b><br/>The Brain<br/><i>All topics, articles,<br/>connections, gaps</i>")]
+### You can query it without reading all of it
 
-        subgraph WIKI ["wiki/ &mdash; Flat Structure, No Subfolders"]
-            S1["source-summary-1.md"]
-            S2["source-summary-2.md"]
-            S3["source-summary-3.md"]
-            CA1["concept-article.md"]
-            CA2["another-concept.md"]
-            CONN["conn-cross-topic.md"]
-            MD["master-tools-directory.md"]
-        end
+A markdown index forces you to load the entire file to find anything. JSON lets you extract exactly what you need:
 
-        subgraph OUT ["output/ &mdash; Query Results"]
-            O1["deep-analysis.md"]
-            O2["presentation-deck.md"]
-            ARC["archived/"]
-        end
-    end
+```bash
+# Just the meta stats (~30 tokens)
+cat Vault/INDEX.json | jq '.meta'
 
-    RAW -->|Ingest| WIKI
-    WIKI -->|Compile| WIKI
-    WIKI <-->|Read/Write| IDX
-    WIKI -->|Query| OUT
-    OUT -->|File Back| WIKI
+# Just one topic's articles (~1-3K tokens)
+cat Vault/INDEX.json | jq '.topics["ai-agents"]'
 
-    style VAULT fill:#1a1a2e,stroke:#555,color:#fff
-    style RAW fill:#2d2d2d,stroke:#f5a623,color:#fff
-    style WIKI fill:#2d2d2d,stroke:#4ecdc4,color:#fff
-    style OUT fill:#2d2d2d,stroke:#a78bfa,color:#fff
-    style IDX fill:#1e3a5f,stroke:#4ecdc4,color:#fff,stroke-width:2px
+# Search by keyword across all articles
+cat Vault/INDEX.json | jq '[.topics[].articles[] | select(.title | test("keyword"; "i"))]'
 ```
 
-### How It Works Under the Hood
+Even when your index grows to 50K+ tokens, you never need to load all of it. You pull the slice you need and move on. This is the difference between a file you read and a file you query.
+
+### Sub-agent delegation keeps your main thread lean
+
+When you're doing knowledge work, your main conversation runs on a powerful model (like Opus). Loading a large index into that context window is expensive and wastes capacity you need for the actual thinking.
+
+Instead, the main thread delegates index scanning to a cheaper, faster sub-agent (Sonnet or Haiku). The sub-agent loads the index, finds the relevant articles, and reports back with just the file paths. The main thread then reads only those specific wiki files.
+
+This does two things:
+
+1. **Reduces cost.** The index scan runs on a cheaper model. Your expensive main thread only reads the articles it actually needs.
+2. **Keeps the main thread focused.** Instead of 50K tokens of index occupying your context window, you get back a short list of recommended files. More room for the knowledge work you're actually doing.
+
+### It scales naturally
+
+| Wiki Size             | INDEX.json    | How the AI reads it                                             |
+| --------------------- | ------------- | --------------------------------------------------------------- |
+| Small (< 50 articles) | < 10K tokens  | Reads the whole thing directly. No sub-agent needed.            |
+| Medium (50-200)       | 10-50K tokens | Queries specific topics via `jq` or Python.                     |
+| Large (200+)          | 50K+ tokens   | Delegates to a sub-agent. Main thread never sees the raw index. |
+
+You don't need to change anything as your wiki grows. The same INDEX.json works at every scale. The AI just reads less of it at a time.
+
+## How It Works Under the Hood
 
 **Flat wiki, no subfolders.** All files live directly in `wiki/`. Topics and connections are tracked in INDEX.json, not folder paths. This makes it easy for the AI to find everything with a single index read.
-
-**INDEX.json is the brain.** A single JSON file that maps every topic, article, summary, connection, and gap. Think of it as a table of contents that the AI maintains automatically.
 
 **Summaries vs. concept articles.** When you drop in a source, the AI creates a summary (one per source, preserving the original's claims and data). When you ask it to organize, it creates concept articles that synthesize ideas across multiple summaries. This separation means it can see patterns across ALL your sources before deciding what deserves its own article.
 
@@ -244,32 +231,21 @@ Non-markdown files get a companion `.md` file with metadata and extracted insigh
 
 When concepts bridge two or more topics, the compile protocol creates connection articles prefixed with `conn-`. These link to relevant articles in both topics and appear in INDEX.json's `connections` array.
 
-### Scaling
-
-At small scale (under 50 articles), INDEX.json is read in full. As the wiki grows:
-
-| Scale                 | INDEX.json Size | Strategy                                       |
-| --------------------- | --------------- | ---------------------------------------------- |
-| Small (< 50 articles) | < 10K tokens    | Read in full                                   |
-| Medium (50-200)       | 10-50K tokens   | Query specific topics via jq/Python            |
-| Large (200+)          | 50K+ tokens     | Never read in full. Use targeted queries only. |
-
-The skill includes a full query reference for navigating large indexes efficiently.
-
 ## What's Different From Karpathy's Original
 
 Andrej Karpathy described the core loop: raw sources go in, LLM compiles a wiki, you query it, knowledge compounds. This implementation extends it with:
 
-1. **INDEX.json as the sole organizer** instead of folder-based topic separation
-2. **Five distinct protocols** (ingest, compile, query, lint, file-back) with clear separation of concerns
-3. **Temporal awareness** with per-topic relevance decay and staleness detection
-4. **Three-tier query depth** that auto-detects from your question's complexity
-5. **Structured metadata** with three dates per file for precise temporal tracking
-6. **Master directories** for thin sources to prevent wiki bloat
-7. **Connection articles** for explicit cross-topic synthesis
-8. **Lint protocol** with auto-fix for self-healing wiki maintenance
-9. **Multiple output formats** including Marp presentations and Obsidian canvas maps
-10. **Obsidian CLI integration** for high-performance structural analysis
+1. **Queryable JSON index** instead of markdown. Extract specific topics, search by keyword, filter by concept without loading the whole file.
+2. **Sub-agent delegation** for index scanning. Main thread stays lean, cheaper models read the index, only recommended files enter your context.
+3. **Five distinct protocols** (ingest, compile, query, lint, file-back) with clear separation of concerns
+4. **Temporal awareness** with per-topic relevance decay and staleness detection
+5. **Three-tier query depth** that auto-detects from your question's complexity
+6. **Structured metadata** with three dates per file for precise temporal tracking
+7. **Master directories** for thin sources to prevent wiki bloat
+8. **Connection articles** for explicit cross-topic synthesis
+9. **Lint protocol** with auto-fix for self-healing wiki maintenance
+10. **Multiple output formats** including Marp presentations and Obsidian canvas maps
+11. **Obsidian CLI integration** for high-performance structural analysis
 
 ## Repo Structure
 

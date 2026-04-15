@@ -62,14 +62,20 @@ Detect the appropriate tier from the user's language. Do not ask "which tier?" J
 
 **Process:**
 
-1. Read INDEX.json in full to map the complete landscape
-2. Dispatch sub-agents to read different wiki sections in parallel:
+1. Delegate INDEX.json scanning to a sub-agent (Sonnet or Haiku):
+   - Pass the question context to the sub-agent
+   - Sub-agent loads INDEX.json, identifies all relevant topics and articles, returns a list of file paths and brief context for each
+   - This keeps the main thread's context window lean and reduces cost (cheaper model reads the large index)
+2. Main session reads only the recommended wiki files
+3. Dispatch additional sub-agents to read different wiki sections in parallel if needed:
    - Each agent gets a topic or subset of articles
    - Each produces structured findings with citations
-3. Main session synthesizes all findings into a comprehensive answer
-4. If wiki has gaps on the question, optionally use WebSearch to fill them (note which claims come from external search vs. wiki)
-5. Write comprehensive output to `Vault/output/`
-6. Suggest file-back if the output adds significant new knowledge
+4. Main session synthesizes all findings into a comprehensive answer
+5. If wiki has gaps on the question, optionally use WebSearch to fill them (note which claims come from external search vs. wiki)
+6. Write comprehensive output to `Vault/output/`
+7. Suggest file-back if the output adds significant new knowledge
+
+**Why sub-agent delegation matters:** INDEX.json can grow to 50K+ tokens at scale. Loading it directly into the main thread wastes expensive context window capacity. The sub-agent reads the index on a cheaper model, and the main thread only ever sees the specific articles it needs. This pattern works at any scale without changing the workflow.
 
 ---
 
